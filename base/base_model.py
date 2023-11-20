@@ -1,25 +1,34 @@
-class BaseModel:
-    def __init__(self, config):
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+from utils.config import Config
+from utils.logger import Logger
+
+logger = Logger()
+
+
+class BaseModel(ABC):
+
+    def __init__(self, config: Config):
         self.config = config
         self.model = None
 
-    # save function that saves the checkpoint in the path defined in the config file
-    def save(self, checkpoint_path):
+    def save(self, checkpoint_path: Path):
         if self.model is None:
-            raise Exception("You have to build the model first.")
+            raise Exception("Model has not been built. Cannot save.")
 
-        print("Saving model...")
+        logger.info("Saving model...")
         self.model.save_weights(checkpoint_path)
-        print("Model saved")
+        logger.info(f"Model saved to {checkpoint_path}")
 
-    # load latest checkpoint from the experiment path defined in the config file
-    def load(self, checkpoint_path):
+    def load(self, checkpoint_path: Path):
         if self.model is None:
-            raise Exception("You have to build the model first.")
+            raise Exception("Model has not been built. Cannot load.")
 
-        print("Loading model checkpoint {} ...\n".format(checkpoint_path))
+        logger.info(f"Loading model checkpoint {checkpoint_path} ..")
         self.model.load_weights(checkpoint_path)
-        print("Model loaded")
+        logger.info("Model loaded")
 
+    @abstractmethod
     def build_model(self):
-        raise NotImplementedError
+        pass
