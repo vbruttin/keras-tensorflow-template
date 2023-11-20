@@ -1,34 +1,39 @@
-import json
-from dotmap import DotMap
-import os
-import time
+from datetime import datetime
+from pathlib import Path
+
+import yaml
+from munch import Munch, munchify
+
+from utils.logger import Logger
+
+logger = Logger()
+
+Config = Munch
 
 
-def get_config_from_json(json_file):
-    """
-    Get the config from a json file
-    :param json_file:
-    :return: config(namespace) or config(dictionary)
-    """
-    # parse the configurations from the config json file provided
-    with open(json_file, 'r') as config_file:
-        config_dict = json.load(config_file)
+def get_config_from_yaml(yaml_file: Path) -> Config:
+    with open(yaml_file, 'r') as config_file:
+        config_dict = yaml.safe_load(config_file)
 
-    # convert the dictionary to a namespace using bunch lib
-    config = DotMap(config_dict)
-
-    return config, config_dict,json_file
+    # convert the dictionary to a namespace
+    return munchify(config_dict)
 
 
-def process_config(json_file):
-    config, _,json_file = get_config_from_json(json_file)
-    json_string_name = json_file.rsplit('_',1)[1].rsplit('.',1)[0] #e.g. mid-01
-    dataloader_string_name =  'dl' + config.data_loader.name.rsplit('_',1)[1].rsplit('.',1)[0] #e.g. dl01
-    model_string_name = 'm' + config.model.name.rsplit('_',1)[1].rsplit('.',1)[0] #e.g. m01
-    config.callbacks.exp_dir = os.path.join("experiments", time.strftime("%Y-%m-%d/",time.localtime()))
-    config.callbacks.checkpoint_dir = os.path.join("experiments", time.strftime("%Y-%m-%d/",time.localtime()),"{}-{}-{}-checkpoints/".format(
-          model_string_name,
-          json_string_name,
-          dataloader_string_name
-          ))    
+def process_config(yaml_file: Path) -> Config:
+    config = get_config_from_yaml(yaml_file)
+    yaml_string_name = yaml_file.stem
+    dataloader_string_name = 'dl' + config.data_loader.name.rsplit('_', 1)[1].rsplit('.', 1)[0]
+    model_string_name = 'm' + config.model.name.rsplit('_', 1)[1].rsplit('.', 1)[0]
+
+    exp_name = datetime.now().strftime('%Y%m%d_%H%M%S')
+    exp_dir = Path("experiments") / exp_name
+    tensorboard_dir = Path("experiment_notes") / exp_name
+    checkpoint_dir = exp_dir / f"{model_string_name}-{yaml_string_name}-{dataloader_string_name}-checkpoints/"
+
+    config.callbacks.exp_dir = str(exp_dir)
+    config.callbacks.tensorboard_dir = str(tensorboard_dir)
+    config.callbacks.checkpoint_dir = str(checkpoint_dir)
+
+    logger.set_log_file(tensorboard_dir)
+
     return config
