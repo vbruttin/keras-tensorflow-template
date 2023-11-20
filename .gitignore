@@ -111,6 +111,7 @@ ENV/
 
 # experiments data
 experiments/
+experiment_notes/
 
 #datasets
 datasets/
